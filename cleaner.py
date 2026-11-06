@@ -7,6 +7,7 @@ import json
 import signal
 import argparse
 import logging
+import getpass
 import requests
 import warnings
 from concurrent.futures import ThreadPoolExecutor
@@ -23,6 +24,7 @@ logging.basicConfig(
 
 LOG_UIDS_FILE = "processed_uids.txt"
 LOG_DOMAINS_FILE = "unsubscribed_domains.txt"
+CONFIG_FILE = "config.json"
 
 def decode_header_value(header_val):
     if not header_val:
@@ -39,7 +41,7 @@ def decode_header_value(header_val):
 class MailCleaner:
     def __init__(self, config_path, dry_run=False):
         self.dry_run = dry_run
-        self.config = self.load_config(config_path)
+        self.config = self.load_or_create_config(config_path)
         self.processed_uids = self.load_set_from_file(LOG_UIDS_FILE)
         self.unsubscribed_domains = self.load_set_from_file(LOG_DOMAINS_FILE)
         self.mail = None
@@ -48,10 +50,49 @@ class MailCleaner:
         signal.signal(signal.SIGINT, self.graceful_exit)
         signal.signal(signal.SIGTERM, self.graceful_exit)
 
-    def load_config(self, path):
+    def load_or_create_config(self, path):
+        """Si le fichier config.json n'existe pas, le terminal interroge l'utilisateur."""
         if not os.path.exists(path):
-            logging.error(f"Fichier de configuration introuvable : {path}")
-            sys.exit(1)
+            print("\n--- 🛠️ Assistant de configuration initial ---")
+            print("Aucun fichier de configuration détecté. Répondez aux questions ci-dessous :\n")
+            
+            email_input = input("Entrez votre adresse e-mail (ex: vous@gmail.com) : ").strip()
+            # getpass masque les caractères du mot de passe pour des raisons de sécurité dans le terminal
+            password_input = getpass.getpass("Entrez votre mot de passe d'application (16 caractères sans espaces) : ").strip()
+
+            config_data = {
+                "email": email_input,
+                "password": password_input,
+                "imap_server": "imap.gmail.com",
+                "trash_folder": "\"[Gmail]/Corbeille\"",
+                "batch_size": 50,
+                "whitelist": [
+                    "github.com",
+                    "urssaf.fr",
+                    "gouv.fr",
+                    "laposte",
+                    "identitenumerique"
+                ],
+                "protected_keywords": [
+                    "code",
+                    "verification",
+                    "password",
+                    "facture",
+                    "suivi"
+                ],
+                "alias_routing": {}
+            }
+
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(config_data, f, indent=4, ensure_ascii=False)
+                print(f"\n[succès] Fichier '{path}' généré automatiquement avec vos informations.\n")
+            except Exception as e:
+                logging.error(f"Impossible d'écrire le fichier de configuration : {e}")
+                sys.exit(1)
+
+            return config_data
+
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
