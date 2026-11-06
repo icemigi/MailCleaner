@@ -1,0 +1,14 @@
+# Environnements virtuels
+venv/
+env/
+__pycache__/
+
+# Configuration privée
+config.json
+
+# Historique d'exécution
+processed_uids.txt
+unsubscribed_domains.txt
+
+# Fichiers système macOS
+.DS_Store
