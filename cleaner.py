@@ -7,7 +7,6 @@ import json
 import signal
 import argparse
 import logging
-import getpass
 import requests
 import warnings
 from concurrent.futures import ThreadPoolExecutor
@@ -57,8 +56,8 @@ class MailCleaner:
             print("Aucun fichier de configuration détecté. Répondez aux questions ci-dessous :\n")
             
             email_input = input("Entrez votre adresse e-mail (ex: vous@gmail.com) : ").strip()
-            # getpass masque les caractères du mot de passe pour des raisons de sécurité dans le terminal
-            password_input = getpass.getpass("Entrez votre mot de passe d'application (16 caractères sans espaces) : ").strip()
+            # Utilisation d'un input classique pour autoriser le copier-coller (Cmd + V) du mot de passe d'application
+            password_input = input("Entrez votre mot de passe d'application (16 caractères sans espaces) : ").strip()
 
             config_data = {
                 "email": email_input,
